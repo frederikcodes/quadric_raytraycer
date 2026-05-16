@@ -40,6 +40,10 @@ struct Vec3
                     y / scalar,
                     z / scalar);
     }
+    Vec3 operator-() const
+    {
+        return Vec3(-x, -y, -z);
+    }
 
     double length() const
     {
