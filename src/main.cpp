@@ -6,18 +6,21 @@
 #include <memory>
 #include <random>
 
-#include "Camera.h"
-#include "Cone.h"
-#include "Cylinder.h"
-#include "Ellipsoid.h"
-#include "HittableList.h"
-#include "Material.h"
-#include "Ray.h"
-#include "RotateX.h"
-#include "RotateZ.h"
-#include "Sphere.h"
-#include "Translate.h"
-#include "Vec3.h"
+#include "core/Camera.h"
+#include "core/Material.h"
+#include "core/Ray.h"
+#include "core/Vec3.h"
+
+#include "hittable/HittableList.h"
+
+#include "primitives/Cone.h"
+#include "primitives/Cylinder.h"
+#include "primitives/Ellipsoid.h"
+#include "primitives/Sphere.h"
+
+#include "transforms/RotateX.h"
+#include "transforms/RotateZ.h"
+#include "transforms/Translate.h"
 
 const Vec3 lightPos(3, 6, 4);
 
@@ -151,7 +154,7 @@ int main()
 
     world.add(
         std::make_shared<Ellipsoid>(
-            Vec3(-1.55, 0.05, -3.1),
+            Vec3(-1.55, 0.55, -3.1),
             Vec3(0.45, 1.05, 0.55),
             greenMat));
 

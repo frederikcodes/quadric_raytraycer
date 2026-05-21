@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-#include "Hittable.h"
-#include "Material.h"
+#include "hittable/Hittable.h"
+#include "core/Material.h"
 
 struct Cylinder : public Hittable
 {
@@ -158,5 +158,22 @@ struct Cylinder : public Hittable
         }
 
         return hitAnything;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        Vec3 minimum(
+            center.x - radius,
+            center.y - height / 2.0,
+            center.z - radius);
+
+        Vec3 maximum(
+            center.x + radius,
+            center.y + height / 2.0,
+            center.z + radius);
+
+        box = AABB(minimum, maximum);
+
+        return true;
     }
 };

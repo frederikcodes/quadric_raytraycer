@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Vec3.h"
+#include "core/Vec3.h"
 
 struct Ray
 {

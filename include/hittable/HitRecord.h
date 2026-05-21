@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Vec3.h"
-#include "Material.h"
+#include "core/Vec3.h"
+#include "core/Material.h"
 
 struct HitRecord
 {

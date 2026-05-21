@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "Hittable.h"
-#include "Ray.h"
-#include "Vec3.h"
+#include "hittable/Hittable.h"
+#include "core/Ray.h"
+#include "core/Vec3.h"
 
 class Translate : public Hittable
 {
@@ -34,6 +34,18 @@ public:
         }
 
         rec.point = rec.point + offset;
+
+        return true;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        if (!object->boundingBox(box))
+        {
+            return false;
+        }
+
+        box = AABB(box.minimum + offset, box.maximum + offset);
 
         return true;
     }

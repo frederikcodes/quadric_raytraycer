@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-#include "Ray.h"
-#include "Vec3.h"
+#include "core/Ray.h"
+#include "core/Vec3.h"
 
 struct Camera
 {

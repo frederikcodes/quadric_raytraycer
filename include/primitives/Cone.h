@@ -2,10 +2,11 @@
 
 #include <cmath>
 
-#include "Hittable.h"
-#include "Material.h"
-#include "Ray.h"
-#include "Vec3.h"
+#include "core/Material.h"
+#include "core/Ray.h"
+#include "core/Vec3.h"
+
+#include "hittable/Hittable.h"
 
 class Cone : public Hittable
 {
@@ -168,5 +169,22 @@ public:
         }
 
         return hitAnything;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        Vec3 minimum(
+            baseCenter.x - radius,
+            baseCenter.y,
+            baseCenter.z - radius);
+
+        Vec3 maximum(
+            baseCenter.x + radius,
+            baseCenter.y + height,
+            baseCenter.z + radius);
+
+        box = AABB(minimum, maximum);
+
+        return true;
     }
 };

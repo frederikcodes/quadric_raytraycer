@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-#include "Hittable.h"
-#include "Material.h"
+#include "hittable/Hittable.h"
+#include "core/Material.h"
 
 struct Sphere : public Hittable
 {
@@ -71,6 +71,14 @@ struct Sphere : public Hittable
             (rec.point - center) / radius;
 
         rec.material = material;
+
+        return true;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        Vec3 radiusVec(radius, radius, radius);
+        box = AABB(center - radiusVec, center + radiusVec);
 
         return true;
     }

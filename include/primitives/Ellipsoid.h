@@ -2,10 +2,10 @@
 
 #include <cmath>
 
-#include "Hittable.h"
-#include "Material.h"
-#include "Ray.h"
-#include "Vec3.h"
+#include "hittable/Hittable.h"
+#include "core/Material.h"
+#include "core/Ray.h"
+#include "core/Vec3.h"
 
 class Ellipsoid : public Hittable
 {
@@ -88,6 +88,13 @@ public:
         rec.normal = outwardNormal.normalized();
 
         rec.material = material;
+
+        return true;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        box = AABB(center - radii, center + radii);
 
         return true;
     }
