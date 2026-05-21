@@ -2,44 +2,84 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <random>
 
+#include "Ellipsoid.h"
 #include "Camera.h"
+#include "Cylinder.h"
 #include "HittableList.h"
+#include "Material.h"
 #include "Ray.h"
 #include "Sphere.h"
 #include "Vec3.h"
+
+const Vec3 lightPos(3, 5, 3);
+const double infinity = std::numeric_limits<double>::infinity();
 
 Vec3 rayColor(const Ray &ray, const Hittable &world)
 {
     HitRecord rec;
 
-    if (world.hit(ray, 0.001, 1e30, rec))
+    if (world.hit(ray, 0.001, infinity, rec))
     {
-        Vec3 lightPos(3, 5, 3);
+        Vec3 lightDir = lightPos - rec.point;
+        double lightDistance = lightDir.length();
+        lightDir = lightDir / lightDistance;
 
-        Vec3 lightDir =
-            (lightPos - rec.point).normalized();
+        Ray shadowRay(
+            rec.point + rec.normal * 0.001,
+            lightDir);
 
-        double intensity =
-            std::max(
-                0.0,
-                dot(rec.normal, lightDir));
+        HitRecord shadowRec;
 
-        return rec.color * intensity;
+        bool inShadow = world.hit(
+            shadowRay,
+            0.001,
+            lightDistance - 0.001,
+            shadowRec);
+
+        Vec3 ambient =
+            rec.material.color * rec.material.ambient;
+
+        Vec3 diffuseColor(0.0, 0.0, 0.0);
+        Vec3 specularColor(0.0, 0.0, 0.0);
+
+        if (!inShadow)
+        {
+            double lambert =
+                std::max(0.0, dot(rec.normal, lightDir));
+
+            diffuseColor =
+                rec.material.color *
+                rec.material.diffuse *
+                lambert;
+
+            Vec3 viewDir =
+                (ray.direction * -1.0).normalized();
+
+            Vec3 reflectDir =
+                (rec.normal * 2.0 * dot(rec.normal, lightDir) - lightDir).normalized();
+
+            double spec =
+                std::pow(
+                    std::max(0.0, dot(viewDir, reflectDir)),
+                    rec.material.shininess);
+
+            specularColor =
+                Vec3(1.0, 1.0, 1.0) *
+                rec.material.specular *
+                spec;
+        }
+
+        return ambient + diffuseColor + specularColor;
     }
 
-    Vec3 unitDir =
-        ray.direction.normalized();
+    Vec3 unitDir = ray.direction.normalized();
+    double t = 0.5 * (unitDir.y + 1.0);
 
-    double t =
-        0.5 * (unitDir.y + 1.0);
-
-    Vec3 white(1.0, 1.0, 1.0);
-    Vec3 blue(0.5, 0.7, 1.0);
-
-    return white * (1.0 - t) + blue * t;
+    return Vec3(1.0, 1.0, 1.0) * (1.0 - t) + Vec3(0.5, 0.7, 1.0) * t;
 }
 
 int main()
@@ -50,25 +90,111 @@ int main()
     const int samplesPerPixel = 64;
 
     Camera cam(
-        Vec3(0, 0, 3),
+        Vec3(2, 2, 4),
         Vec3(0, 0, 0),
         Vec3(0, 1, 0),
-        90.0,
+        45.0,
         double(imageWidth) / imageHeight);
+
+    Material blueMat(
+        Vec3(0.2, 0.4, 1.0),
+        0.1,
+        0.9,
+        0.6,
+        64.0);
+
+    Material greenMat(
+        Vec3(0.2, 1.0, 0.3),
+        0.1,
+        1.0,
+        0.5,
+        32.0);
+
+    Material shinyRedMat(
+        Vec3(1.0, 0.15, 0.12),
+        0.05,
+        0.85,
+        1.2,
+        160.0);
+
+    Material matteGreenMat(
+        Vec3(0.2, 0.8, 0.3),
+        0.15,
+        0.9,
+        0.1,
+        12.0);
+
+    Material shinyYellowMat(
+        Vec3(1.0, 0.85, 0.15),
+        0.05,
+        0.9,
+        1.4,
+        220.0);
+
+    Material glossyPurpleMat(
+        Vec3(0.6, 0.25, 0.9),
+        0.08,
+        0.85,
+        1.0,
+        120.0);
+
+    Material groundMat(
+        Vec3(0.8, 0.8, 0.8),
+        0.12,
+        0.9,
+        0.05,
+        8.0);
 
     HittableList world;
 
     world.add(
-        std::make_shared<Sphere>(
-            Vec3(0, 0, 0),
+        std::make_shared<Cylinder>(
+            Vec3(0.0, 0.0, 0.0),
             0.5,
-            Vec3(1, 0.2, 0.2)));
+            1.0,
+            blueMat));
+
+    world.add(std::make_shared<Ellipsoid>(
+        Vec3(-1.5, 0.0, -3.0),
+        Vec3(0.5, 1.0, 0.5),
+        greenMat));
+
+    world.add(
+        std::make_shared<Sphere>(
+            Vec3(-1.2, 0.0, -0.8),
+            0.45,
+            shinyRedMat));
+
+    world.add(
+        std::make_shared<Sphere>(
+            Vec3(1.2, 0.0, -1.0),
+            0.45,
+            matteGreenMat));
+
+    world.add(
+        std::make_shared<Cylinder>(
+            Vec3(-1.8, 0.0, -2.4),
+            0.35,
+            0.9,
+            shinyYellowMat));
+
+    world.add(
+        std::make_shared<Sphere>(
+            Vec3(1.8, 0.2, -2.6),
+            0.6,
+            glossyPurpleMat));
+
+    world.add(
+        std::make_shared<Sphere>(
+            Vec3(0.0, 0.15, -3.5),
+            0.75,
+            shinyYellowMat));
 
     world.add(
         std::make_shared<Sphere>(
             Vec3(0, -100.5, 0),
             100.0,
-            Vec3(0.8, 0.8, 0.8)));
+            groundMat));
 
     std::ofstream out("../images/output.ppm");
 
