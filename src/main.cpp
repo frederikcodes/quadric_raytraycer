@@ -6,6 +6,8 @@
 #include <memory>
 #include <random>
 
+#include "acceleration/Octree.h"
+
 #include "core/Camera.h"
 #include "core/Material.h"
 #include "core/Ray.h"
@@ -28,11 +30,30 @@ const double infinity =
     std::numeric_limits<double>::infinity();
 
 Vec3 rayColor(const Ray &ray,
-              const Hittable &world)
+              const Hittable &world,
+              const Hittable &ground)
 {
     HitRecord rec;
+    HitRecord tempRec;
 
-    if (world.hit(ray, 0.001, infinity, rec))
+    bool hitAnything = false;
+    double closestSoFar = infinity;
+
+    if (world.hit(ray, 0.001, closestSoFar, tempRec))
+    {
+        hitAnything = true;
+        closestSoFar = tempRec.t;
+        rec = tempRec;
+    }
+
+    if (ground.hit(ray, 0.001, closestSoFar, tempRec))
+    {
+        hitAnything = true;
+        closestSoFar = tempRec.t;
+        rec = tempRec;
+    }
+
+    if (hitAnything)
     {
         Vec3 lightDir = lightPos - rec.point;
         double lightDistance = lightDir.length();
@@ -42,10 +63,12 @@ Vec3 rayColor(const Ray &ray,
             rec.point + rec.normal * 0.001,
             lightDir);
 
-        HitRecord shadowRec;
-
         bool inShadow =
             world.anyHit(
+                shadowRay,
+                0.001,
+                lightDistance) ||
+            ground.anyHit(
                 shadowRay,
                 0.001,
                 lightDistance);
@@ -120,16 +143,16 @@ int main()
     Material cyanMat(Vec3(0.1, 0.85, 1.0), 0.08, 0.9, 0.75, 96.0);
     Material groundMat(Vec3(0.78, 0.78, 0.78), 0.14, 0.9, 0.04, 8.0);
 
-    HittableList world;
+    HittableList accelWorld;
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Cylinder>(
             Vec3(0.0, -0.5, -1.4),
             0.45,
             1.6,
             blueMat));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Translate>(
             std::make_shared<RotateZ>(
                 std::make_shared<Cone>(
@@ -140,7 +163,7 @@ int main()
                 -55.0),
             Vec3(-0.9, 0.45, -1.9)));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Translate>(
             std::make_shared<RotateX>(
                 std::make_shared<Cylinder>(
@@ -151,31 +174,31 @@ int main()
                 85.0),
             Vec3(1.1, 0.35, -2.3)));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Ellipsoid>(
             Vec3(-1.55, 0.55, -3.1),
             Vec3(0.45, 1.05, 0.55),
             greenMat));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Sphere>(
             Vec3(-1.15, -0.05, -0.65),
             0.45,
             redMat));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Sphere>(
             Vec3(1.35, -0.05, -0.9),
             0.42,
             purpleMat));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Sphere>(
             Vec3(0.05, 0.10, -3.7),
             0.70,
             yellowMat));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Translate>(
             std::make_shared<RotateZ>(
                 std::make_shared<Cylinder>(
@@ -186,7 +209,7 @@ int main()
                 35.0),
             Vec3(-1.9, 0.30, -2.2)));
 
-    world.add(
+    accelWorld.add(
         std::make_shared<Translate>(
             std::make_shared<RotateX>(
                 std::make_shared<Cone>(
@@ -197,11 +220,12 @@ int main()
                 -35.0),
             Vec3(1.75, 0.35, -3.0)));
 
-    world.add(
-        std::make_shared<Sphere>(
-            Vec3(0, -100.5, 0),
-            100.0,
-            groundMat));
+    Octree octree(accelWorld);
+
+    Sphere ground(
+        Vec3(0, -100.5, 0),
+        100.0,
+        groundMat);
 
     std::ofstream out("../images/output.ppm");
 
@@ -238,7 +262,7 @@ int main()
 
                 color =
                     color +
-                    rayColor(ray, world);
+                    rayColor(ray, octree, ground);
             }
 
             color = color / samplesPerPixel;

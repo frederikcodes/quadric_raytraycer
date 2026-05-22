@@ -1,4 +1,3 @@
-
 #include "acceleration/Octree.h"
 
 Octree::Octree(const HittableList &world,
@@ -102,28 +101,40 @@ std::unique_ptr<OctreeNode> Octree::buildNode(
 
     for (const auto &obj : objects)
     {
+        int matchingChild = -1;
+        int overlapCount = 0;
+
         for (int i = 0; i < 8; i++)
         {
             if (obj.box.overlaps(childBounds[i]))
             {
-                childObjects[i].push_back(obj);
+                matchingChild = i;
+                overlapCount++;
             }
+        }
+
+        if (overlapCount == 1)
+        {
+            childObjects[matchingChild].push_back(obj);
+        }
+        else
+        {
+            node->objects.push_back(obj);
         }
     }
 
-    bool wasSplitUseful = false;
+    bool hasChildObjects = false;
 
     for (int i = 0; i < 8; i++)
     {
-        if (!childObjects[i].empty() &&
-            childObjects[i].size() < objects.size())
+        if (!childObjects[i].empty())
         {
-            wasSplitUseful = true;
+            hasChildObjects = true;
             break;
         }
     }
 
-    if (!wasSplitUseful)
+    if (!hasChildObjects)
     {
         node->objects = objects;
         return node;
@@ -169,7 +180,9 @@ void Octree::createChildBounds(
                     y == 0 ? mid.y : max.y,
                     z == 0 ? mid.z : max.z);
 
-                childBounds[index] = AABB(childMin, childMax);
+                childBounds[index] =
+                    AABB(childMin, childMax);
+
                 index++;
             }
         }
@@ -189,27 +202,26 @@ bool Octree::hitNode(
     }
 
     HitRecord tempRec;
+
     bool hitAnything = false;
     double closestSoFar = tMax;
 
-    if (node->isLeaf())
+    for (const auto &obj : node->objects)
     {
-        for (const auto &obj : node->objects)
+        if (!obj.box.hit(ray, tMin, closestSoFar))
         {
-            if (!obj.box.hit(ray, tMin, closestSoFar))
-            {
-                continue;
-            }
-
-            if (obj.object->hit(ray, tMin, closestSoFar, tempRec))
-            {
-                hitAnything = true;
-                closestSoFar = tempRec.t;
-                rec = tempRec;
-            }
+            continue;
         }
 
-        return hitAnything;
+        if (obj.object->hit(ray,
+                            tMin,
+                            closestSoFar,
+                            tempRec))
+        {
+            hitAnything = true;
+            closestSoFar = tempRec.t;
+            rec = tempRec;
+        }
     }
 
     for (int i = 0; i < 8; i++)
@@ -245,22 +257,19 @@ bool Octree::anyHitNode(
         return false;
     }
 
-    if (node->isLeaf())
+    for (const auto &obj : node->objects)
     {
-        for (const auto &obj : node->objects)
+        if (!obj.box.hit(ray, tMin, tMax))
         {
-            if (!obj.box.hit(ray, tMin, tMax))
-            {
-                continue;
-            }
-
-            if (obj.object->anyHit(ray, tMin, tMax))
-            {
-                return true;
-            }
+            continue;
         }
 
-        return false;
+        if (obj.object->anyHit(ray,
+                               tMin,
+                               tMax))
+        {
+            return true;
+        }
     }
 
     for (int i = 0; i < 8; i++)
