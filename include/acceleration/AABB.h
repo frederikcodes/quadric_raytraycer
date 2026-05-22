@@ -20,6 +20,23 @@ public:
     {
     }
 
+    Vec3 center() const
+    {
+        return (minimum + maximum) * 0.5;
+    }
+
+    bool overlaps(const AABB &other) const
+    {
+        return minimum.x <= other.maximum.x &&
+               maximum.x >= other.minimum.x &&
+
+               minimum.y <= other.maximum.y &&
+               maximum.y >= other.minimum.y &&
+
+               minimum.z <= other.maximum.z &&
+               maximum.z >= other.minimum.z;
+    }
+
     bool hit(const Ray &ray,
              double tMin,
              double tMax) const
@@ -75,3 +92,19 @@ public:
         return true;
     }
 };
+
+inline AABB surroundingBox(const AABB &a,
+                           const AABB &b)
+{
+    Vec3 small(
+        std::min(a.minimum.x, b.minimum.x),
+        std::min(a.minimum.y, b.minimum.y),
+        std::min(a.minimum.z, b.minimum.z));
+
+    Vec3 big(
+        std::max(a.maximum.x, b.maximum.x),
+        std::max(a.maximum.y, b.maximum.y),
+        std::max(a.maximum.z, b.maximum.z));
+
+    return AABB(small, big);
+}

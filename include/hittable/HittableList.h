@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -29,6 +28,11 @@ struct HittableList : public Hittable
     void clear()
     {
         objects.clear();
+    }
+
+    const std::vector<ObjectEntry> &entries() const
+    {
+        return objects;
     }
 
     bool hit(const Ray &ray,
@@ -61,43 +65,6 @@ struct HittableList : public Hittable
         return hitAnything;
     }
 
-    bool boundingBox(AABB &box) const override
-    {
-        if (objects.empty())
-        {
-            return false;
-        }
-
-        bool firstBox = true;
-
-        for (const auto &entry : objects)
-        {
-            if (!entry.hasBox)
-            {
-                return false;
-            }
-
-            if (firstBox)
-            {
-                box = entry.box;
-                firstBox = false;
-            }
-            else
-            {
-                box = AABB(
-                    Vec3(
-                        std::min(box.minimum.x, entry.box.minimum.x),
-                        std::min(box.minimum.y, entry.box.minimum.y),
-                        std::min(box.minimum.z, entry.box.minimum.z)),
-                    Vec3(
-                        std::max(box.maximum.x, entry.box.maximum.x),
-                        std::max(box.maximum.y, entry.box.maximum.y),
-                        std::max(box.maximum.z, entry.box.maximum.z)));
-            }
-        }
-
-        return true;
-    }
     bool anyHit(const Ray &ray,
                 double tMin,
                 double tMax) const override
@@ -114,12 +81,37 @@ struct HittableList : public Hittable
                 }
             }
 
-            if (entry.object->hit(ray, tMin, tMax, tempRec))
+            if (entry.object->anyHit(ray, tMin, tMax))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    bool boundingBox(AABB &box) const override
+    {
+        bool firstBox = true;
+
+        for (const auto &entry : objects)
+        {
+            if (!entry.hasBox)
+            {
+                return false;
+            }
+
+            if (firstBox)
+            {
+                box = entry.box;
+                firstBox = false;
+            }
+            else
+            {
+                box = surroundingBox(box, entry.box);
+            }
+        }
+
+        return !firstBox;
     }
 };
