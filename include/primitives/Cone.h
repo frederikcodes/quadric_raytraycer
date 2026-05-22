@@ -187,4 +187,11 @@ public:
 
         return true;
     }
+    bool anyHit(const Ray &ray,
+                double tMin,
+                double tMax) const override
+    {
+        HitRecord rec;
+        return hit(ray, tMin, tMax, rec);
+    }
 };

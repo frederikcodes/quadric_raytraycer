@@ -27,6 +27,13 @@ public:
         sinTheta = std::sin(radians);
         cosTheta = std::cos(radians);
     }
+    bool anyHit(const Ray &ray,
+                double tMin,
+                double tMax) const override
+    {
+        HitRecord rec;
+        return hit(ray, tMin, tMax, rec);
+    }
 
     bool hit(const Ray &ray,
              double tMin,

@@ -45,11 +45,10 @@ Vec3 rayColor(const Ray &ray,
         HitRecord shadowRec;
 
         bool inShadow =
-            world.hit(
+            world.anyHit(
                 shadowRay,
                 0.001,
-                lightDistance - 0.001,
-                shadowRec);
+                lightDistance);
 
         Vec3 ambient =
             rec.material.color *

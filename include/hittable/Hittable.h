@@ -24,4 +24,7 @@ public:
                      HitRecord &rec) const = 0;
 
     virtual bool boundingBox(AABB &box) const = 0;
+    virtual bool anyHit(const Ray &ray,
+                        double tMin,
+                        double tMax) const = 0;
 };
