@@ -1,0 +1,9 @@
+=== Reflection Benchmark ===
+Resolution: 1920x1080
+Samples per pixel: 64
+Max recursion depth: 4
+
+HittableList render time: 266.381 seconds
+Octree build time: 1.07e-05 seconds
+Octree render time: 233.421 seconds
+Render speedup: 1.1412x

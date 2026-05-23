@@ -2,27 +2,40 @@
 
 #include "core/Vec3.h"
 
-struct Material
+class Material
 {
+public:
     Vec3 color;
 
     double ambient;
     double diffuse;
-
     double specular;
     double shininess;
 
-    Material(
-        const Vec3 &color = Vec3(1, 1, 1),
-        double ambient = 0.1,
-        double diffuse = 1.0,
-        double specular = 0.0,
-        double shininess = 32.0)
+    double reflectivity;
+
+    Material()
+        : color(1.0, 1.0, 1.0),
+          ambient(0.1),
+          diffuse(1.0),
+          specular(0.0),
+          shininess(32.0),
+          reflectivity(0.0)
+    {
+    }
+
+    Material(const Vec3 &color,
+             double ambient,
+             double diffuse,
+             double specular,
+             double shininess,
+             double reflectivity = 0.0)
         : color(color),
           ambient(ambient),
           diffuse(diffuse),
           specular(specular),
-          shininess(shininess)
+          shininess(shininess),
+          reflectivity(reflectivity)
     {
     }
 };

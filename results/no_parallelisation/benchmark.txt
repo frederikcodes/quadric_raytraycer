@@ -1,0 +1,8 @@
+=== Benchmark ===
+Resolution: 800x450
+Samples per pixel: 64
+
+HittableList render time: 30.0926 seconds
+Octree build time: 1.3542e-05 seconds
+Octree render time: 25.4253 seconds
+Render speedup: 1.18357x

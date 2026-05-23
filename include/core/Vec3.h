@@ -75,3 +75,7 @@ inline Vec3 cross(const Vec3 &a, const Vec3 &b)
         a.z * b.x - a.x * b.z,
         a.x * b.y - a.y * b.x);
 }
+inline Vec3 reflect(const Vec3 &direction, const Vec3 &normal)
+{
+    return direction - normal * 2.0 * dot(direction, normal);
+}
