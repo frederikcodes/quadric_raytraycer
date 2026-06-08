@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+
 #include "acceleration/Octree.h"
 
 #include "core/Camera.h"
@@ -21,7 +24,7 @@
 #include "scenes/Scenes.h"
 
 const std::string outputDir =
-    "../results/multiple_scenes_no_parallelisation/";
+    "../results/multiple_scenes_tbb/";
 
 const Vec3 lightPos(3, 6, 4);
 
@@ -69,14 +72,8 @@ Vec3 rayColor(const Ray &ray,
             lightDir);
 
         bool inShadow =
-            world.anyHit(
-                shadowRay,
-                0.001,
-                lightDistance) ||
-            ground.anyHit(
-                shadowRay,
-                0.001,
-                lightDistance);
+            world.anyHit(shadowRay, 0.001, lightDistance) ||
+            ground.anyHit(shadowRay, 0.001, lightDistance);
 
         Vec3 ambient =
             rec.material.color *
@@ -165,72 +162,85 @@ double renderImage(const std::string &label,
 {
     std::filesystem::create_directories(outputDir);
 
+    std::vector<unsigned char> framebuffer(
+        imageWidth * imageHeight * 3);
+
+    auto startTime =
+        std::chrono::high_resolution_clock::now();
+
+    tbb::parallel_for(
+        tbb::blocked_range<int>(0, imageHeight),
+        [&](const tbb::blocked_range<int> &range)
+        {
+            for (int row = range.begin(); row < range.end(); ++row)
+            {
+                int y = imageHeight - 1 - row;
+
+                std::mt19937 rng(42 + row);
+                std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+                for (int x = 0; x < imageWidth; ++x)
+                {
+                    Vec3 color(0, 0, 0);
+
+                    for (int s = 0; s < samplesPerPixel; ++s)
+                    {
+                        double u =
+                            (x + dist(rng)) /
+                            (imageWidth - 1);
+
+                        double v =
+                            (y + dist(rng)) /
+                            (imageHeight - 1);
+
+                        Ray ray = cam.getRay(u, v);
+
+                        color =
+                            color +
+                            rayColor(
+                                ray,
+                                world,
+                                ground,
+                                maxDepth);
+                    }
+
+                    color = color / samplesPerPixel;
+
+                    color.x = std::clamp(color.x, 0.0, 1.0);
+                    color.y = std::clamp(color.y, 0.0, 1.0);
+                    color.z = std::clamp(color.z, 0.0, 1.0);
+
+                    int r = int(255.999 * color.x);
+                    int g = int(255.999 * color.y);
+                    int b = int(255.999 * color.z);
+
+                    std::size_t index =
+                        (row * imageWidth + x) * 3;
+
+                    framebuffer[index + 0] =
+                        static_cast<unsigned char>(r);
+
+                    framebuffer[index + 1] =
+                        static_cast<unsigned char>(g);
+
+                    framebuffer[index + 2] =
+                        static_cast<unsigned char>(b);
+                }
+            }
+        });
+
+    auto endTime =
+        std::chrono::high_resolution_clock::now();
+
     std::ofstream out(outputDir + filename, std::ios::binary);
 
     out << "P6\n";
     out << imageWidth << " " << imageHeight << "\n";
     out << "255\n";
 
-    std::mt19937 rng(42);
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-    auto startTime =
-        std::chrono::high_resolution_clock::now();
-
-    for (int y = imageHeight - 1; y >= 0; --y)
-    {
-        std::cout
-            << "\r[" << label << "] Scanlines remaining: "
-            << y
-            << " "
-            << std::flush;
-
-        for (int x = 0; x < imageWidth; ++x)
-        {
-            Vec3 color(0, 0, 0);
-
-            for (int s = 0; s < samplesPerPixel; ++s)
-            {
-                double u =
-                    (x + dist(rng)) /
-                    (imageWidth - 1);
-
-                double v =
-                    (y + dist(rng)) /
-                    (imageHeight - 1);
-
-                Ray ray = cam.getRay(u, v);
-
-                color =
-                    color +
-                    rayColor(
-                        ray,
-                        world,
-                        ground,
-                        maxDepth);
-            }
-
-            color = color / samplesPerPixel;
-
-            color.x = std::clamp(color.x, 0.0, 1.0);
-            color.y = std::clamp(color.y, 0.0, 1.0);
-            color.z = std::clamp(color.z, 0.0, 1.0);
-
-            int r = int(255.999 * color.x);
-            int g = int(255.999 * color.y);
-            int b = int(255.999 * color.z);
-
-            unsigned char pixel[3] = {
-                static_cast<unsigned char>(r),
-                static_cast<unsigned char>(g),
-                static_cast<unsigned char>(b)};
-
-            out.write(reinterpret_cast<char *>(pixel), 3);
-        }
-    }
-
-    auto endTime =
-        std::chrono::high_resolution_clock::now();
+    out.write(
+        reinterpret_cast<char *>(framebuffer.data()),
+        framebuffer.size());
 
     double seconds =
         std::chrono::duration<double>(
@@ -238,7 +248,7 @@ double renderImage(const std::string &label,
             .count();
 
     std::cout
-        << "\n[" << label << "] Render time: "
+        << "[" << label << "] Render time: "
         << seconds
         << " seconds\n";
 
@@ -280,10 +290,10 @@ int main()
             imageHeight));
 
     std::ofstream benchmarkFile(
-        outputDir + "benchmark.txt");
+        outputDir + "benchmark_tbb.txt");
 
     benchmarkFile
-        << "=== Multi-Scene Benchmark ===\n";
+        << "=== Multi-Scene Benchmark with oneTBB ===\n";
 
     benchmarkFile
         << "Resolution: "
@@ -319,8 +329,8 @@ int main()
 
         double listTime =
             renderImage(
-                scene.name + "_HittableList",
-                scene.name + "_list.ppm",
+                scene.name + "_HittableList_TBB",
+                scene.name + "_list_tbb.ppm",
                 scene.world,
                 *scene.ground,
                 scene.camera,
@@ -331,8 +341,8 @@ int main()
 
         double octreeTime =
             renderImage(
-                scene.name + "_Octree",
-                scene.name + "_octree.ppm",
+                scene.name + "_Octree_TBB",
+                scene.name + "_octree_tbb.ppm",
                 octree,
                 *scene.ground,
                 scene.camera,
@@ -350,7 +360,7 @@ int main()
             << " ===\n";
 
         benchmarkFile
-            << "HittableList render time: "
+            << "HittableList TBB render time: "
             << listTime
             << " seconds\n";
 
@@ -360,7 +370,7 @@ int main()
             << " seconds\n";
 
         benchmarkFile
-            << "Octree render time: "
+            << "Octree TBB render time: "
             << octreeTime
             << " seconds\n";
 
@@ -372,7 +382,7 @@ int main()
         if (octreeTime > 0.0)
         {
             benchmarkFile
-                << "Render speedup: "
+                << "Render speedup list/octree: "
                 << listTime / octreeTime
                 << "x\n";
         }
@@ -390,7 +400,7 @@ int main()
             << "\n";
 
         std::cout
-            << "HittableList render time: "
+            << "HittableList TBB render time: "
             << listTime
             << " seconds\n";
 
@@ -400,7 +410,7 @@ int main()
             << " seconds\n";
 
         std::cout
-            << "Octree render time: "
+            << "Octree TBB render time: "
             << octreeTime
             << " seconds\n";
 
@@ -412,7 +422,7 @@ int main()
         if (octreeTime > 0.0)
         {
             std::cout
-                << "Render speedup: "
+                << "Render speedup list/octree: "
                 << listTime / octreeTime
                 << "x\n";
         }

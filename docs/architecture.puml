@@ -1,0 +1,219 @@
+@startuml
+title HPC Quadrics - Klassendiagramm
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+package "core" {
+  class Vec3 {
+    +double x
+    +double y
+    +double z
+    +length() : double
+    +normalized() : Vec3
+  }
+
+  class Ray {
+    +Vec3 origin
+    +Vec3 direction
+    +at(t : double) : Vec3
+  }
+
+  class Material {
+    +Vec3 color
+    +double ambient
+    +double diffuse
+    +double specular
+    +double shininess
+    +double reflectivity
+  }
+
+  class Camera {
+    +Vec3 origin
+    +Vec3 lowerLeftCorner
+    +Vec3 horizontal
+    +Vec3 vertical
+    +getRay(s : double, t : double) : Ray
+  }
+}
+
+package "hittable" {
+  interface Hittable {
+    +hit(ray : Ray, tMin : double, tMax : double, rec : HitRecord) : bool
+    +anyHit(ray : Ray, tMin : double, tMax : double) : bool
+    +boundingBox(box : AABB) : bool
+  }
+
+  class HitRecord {
+    +Vec3 point
+    +Vec3 normal
+    +Material material
+    +double t
+  }
+
+  class HittableList {
+    +objects : vector<ObjectEntry>
+    +add(object : shared_ptr<Hittable>) : void
+    +clear() : void
+    +entries() : vector<ObjectEntry>
+  }
+
+  class ObjectEntry {
+    +object : shared_ptr<Hittable>
+    +AABB box
+    +bool hasBox
+  }
+}
+
+package "primitives" {
+  class Sphere {
+    +Vec3 center
+    +double radius
+    +Material material
+  }
+
+  class Ellipsoid {
+    +Vec3 center
+    +Vec3 radii
+    +Material material
+  }
+
+  class Cylinder {
+    +Vec3 center
+    +double radius
+    +double height
+    +Material material
+  }
+
+  class Cone {
+    +Vec3 baseCenter
+    +double height
+    +double radius
+    +Material material
+  }
+}
+
+package "transforms" {
+  class Translate {
+    +object : shared_ptr<Hittable>
+    +Vec3 offset
+  }
+
+  class RotateX {
+    +object : shared_ptr<Hittable>
+    +double sinTheta
+    +double cosTheta
+  }
+
+  class RotateZ {
+    +object : shared_ptr<Hittable>
+    +double sinTheta
+    +double cosTheta
+  }
+}
+
+package "acceleration" {
+  class AABB {
+    +Vec3 minimum
+    +Vec3 maximum
+    +center() : Vec3
+    +overlaps(other : AABB) : bool
+    +hit(ray : Ray, tMin : double, tMax : double) : bool
+  }
+
+  class Octree {
+    -root : unique_ptr<OctreeNode>
+    -maxDepth : int
+    -maxObjectsPerLeaf : int
+    -rootBounds : AABB
+    -hasRootBounds : bool
+    -buildNode(bounds : AABB, objects : vector<OctreeObject>, depth : int) : unique_ptr<OctreeNode>
+    -hitNode(node : OctreeNode, ray : Ray, tMin : double, tMax : double, rec : HitRecord) : bool
+    -anyHitNode(node : OctreeNode, ray : Ray, tMin : double, tMax : double) : bool
+  }
+
+  class OctreeNode {
+    +AABB bounds
+    +objects : vector<OctreeObject>
+    +children : unique_ptr<OctreeNode>[8]
+    +isLeaf() : bool
+  }
+
+  class OctreeObject {
+    +object : shared_ptr<Hittable>
+    +AABB box
+  }
+}
+
+package "debug" {
+  class AABBDebug {
+    +addAABBCorners(world : HittableList, box : AABB, mat : Material, radius : double) : void
+  }
+}
+
+Hittable <|.. HittableList
+Hittable <|.. Sphere
+Hittable <|.. Ellipsoid
+Hittable <|.. Cylinder
+Hittable <|.. Cone
+Hittable <|.. Translate
+Hittable <|.. RotateX
+Hittable <|.. RotateZ
+Hittable <|.. Octree
+
+HittableList *-- "0..*" ObjectEntry
+ObjectEntry o-- Hittable
+
+Translate o-- Hittable
+RotateX o-- Hittable
+RotateZ o-- Hittable
+
+Octree *-- "0..1" OctreeNode : root
+OctreeNode *-- "0..8" OctreeNode : children
+OctreeNode *-- "0..*" OctreeObject
+OctreeObject o-- Hittable
+
+HitRecord *-- Vec3 : point
+HitRecord *-- Vec3 : normal
+HitRecord *-- Material
+
+Ray *-- Vec3 : origin
+Ray *-- Vec3 : direction
+Material *-- Vec3 : color
+Camera ..> Ray : creates
+Camera *-- Vec3
+
+Hittable ..> Ray
+Hittable ..> HitRecord
+Hittable ..> AABB
+
+AABB *-- Vec3 : minimum
+AABB *-- Vec3 : maximum
+
+Sphere *-- Material
+Ellipsoid *-- Material
+Cylinder *-- Material
+Cone *-- Material
+
+Sphere *-- Vec3
+Ellipsoid *-- Vec3
+Cylinder *-- Vec3
+Cone *-- Vec3
+
+AABBDebug ..> HittableList
+AABBDebug ..> AABB
+AABBDebug ..> Sphere
+
+note right of Hittable
+  Gemeinsames Interface fuer alle
+  renderbaren und beschleunigten Objekte.
+end note
+
+note bottom of Octree
+  Beschleunigungsstruktur: wird aus einer
+  HittableList aufgebaut und kann diese beim
+  Rendering als Hittable ersetzen.
+end note
+
+@enduml
