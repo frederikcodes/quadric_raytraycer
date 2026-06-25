@@ -17,6 +17,7 @@
 #include "core/Vec3.h"
 
 #include "hittable/Hittable.h"
+#include "hittable/HitRecord.h"
 
 #include "scenes/Scenes.h"
 

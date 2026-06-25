@@ -8,6 +8,7 @@
 #include "core/Ray.h"
 #include "hittable/Hittable.h"
 #include "hittable/HittableList.h"
+#include "hittable/HitRecord.h"
 
 class Octree : public Hittable
 {

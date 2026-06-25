@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cmath>
-
-#include "hittable/Hittable.h"
+#include "acceleration/AABB.h"
 #include "core/Material.h"
+#include "core/Ray.h"
+#include "hittable/Hittable.h"
+#include "hittable/HitRecord.h"
 
 struct Cylinder : public Hittable
 {
@@ -17,170 +18,17 @@ struct Cylinder : public Hittable
         const Vec3 &center,
         double radius,
         double height,
-        const Material &material)
-        : center(center),
-          radius(radius),
-          height(height),
-          material(material)
-    {
-    }
+        const Material &material);
 
     bool hit(
         const Ray &ray,
         double tMin,
         double tMax,
-        HitRecord &rec) const override
-    {
-        const double epsilon = 1e-12;
-        const double yMin = center.y - height / 2.0;
-        const double yMax = center.y + height / 2.0;
+        HitRecord &rec) const override;
 
-        bool hitAnything = false;
-        double closestSoFar = tMax;
-        HitRecord tempRec;
+    bool boundingBox(AABB &box) const override;
 
-        Vec3 oc = ray.origin - center;
-
-        double dx = ray.direction.x;
-        double dz = ray.direction.z;
-
-        double a = dx * dx + dz * dz;
-        double b = 2.0 * (oc.x * dx + oc.z * dz);
-        double c = oc.x * oc.x + oc.z * oc.z - radius * radius;
-
-        // Mantel
-        if (a > epsilon)
-        {
-            double discriminant = b * b - 4.0 * a * c;
-
-            if (discriminant >= 0.0)
-            {
-                double sqrtD = std::sqrt(discriminant);
-
-                double root = (-b - sqrtD) / (2.0 * a);
-
-                if (root >= tMin && root < closestSoFar)
-                {
-                    Vec3 hitPoint = ray.at(root);
-
-                    if (hitPoint.y >= yMin && hitPoint.y <= yMax)
-                    {
-                        tempRec.t = root;
-                        tempRec.point = hitPoint;
-                        tempRec.normal =
-                            Vec3(
-                                hitPoint.x - center.x,
-                                0,
-                                hitPoint.z - center.z)
-                                .normalized();
-
-                        tempRec.material = material;
-
-                        rec = tempRec;
-                        closestSoFar = root;
-                        hitAnything = true;
-                    }
-                }
-
-                root = (-b + sqrtD) / (2.0 * a);
-
-                if (root >= tMin && root < closestSoFar)
-                {
-                    Vec3 hitPoint = ray.at(root);
-
-                    if (hitPoint.y >= yMin && hitPoint.y <= yMax)
-                    {
-                        tempRec.t = root;
-                        tempRec.point = hitPoint;
-                        tempRec.normal =
-                            Vec3(
-                                hitPoint.x - center.x,
-                                0,
-                                hitPoint.z - center.z)
-                                .normalized();
-
-                        tempRec.material = material;
-
-                        rec = tempRec;
-                        closestSoFar = root;
-                        hitAnything = true;
-                    }
-                }
-            }
-        }
-
-        // Deckel
-        if (std::fabs(ray.direction.y) > epsilon)
-        {
-            double t = (yMin - ray.origin.y) / ray.direction.y;
-
-            if (t >= tMin && t < closestSoFar)
-            {
-                Vec3 hitPoint = ray.at(t);
-
-                double capDx = hitPoint.x - center.x;
-                double capDz = hitPoint.z - center.z;
-
-                if (capDx * capDx + capDz * capDz <= radius * radius)
-                {
-                    tempRec.t = t;
-                    tempRec.point = hitPoint;
-                    tempRec.normal = Vec3(0, -1, 0);
-                    tempRec.material = material;
-
-                    rec = tempRec;
-                    closestSoFar = t;
-                    hitAnything = true;
-                }
-            }
-
-            t = (yMax - ray.origin.y) / ray.direction.y;
-
-            if (t >= tMin && t < closestSoFar)
-            {
-                Vec3 hitPoint = ray.at(t);
-
-                double capDx = hitPoint.x - center.x;
-                double capDz = hitPoint.z - center.z;
-
-                if (capDx * capDx + capDz * capDz <= radius * radius)
-                {
-                    tempRec.t = t;
-                    tempRec.point = hitPoint;
-                    tempRec.normal = Vec3(0, 1, 0);
-                    tempRec.material = material;
-
-                    rec = tempRec;
-                    closestSoFar = t;
-                    hitAnything = true;
-                }
-            }
-        }
-
-        return hitAnything;
-    }
-
-    bool boundingBox(AABB &box) const override
-    {
-        Vec3 minimum(
-            center.x - radius,
-            center.y - height / 2.0,
-            center.z - radius);
-
-        Vec3 maximum(
-            center.x + radius,
-            center.y + height / 2.0,
-            center.z + radius);
-
-        box = AABB(minimum, maximum);
-
-        return true;
-    }
     bool anyHit(const Ray &ray,
                 double tMin,
-                double tMax) const override
-    {
-        HitRecord rec;
-        return hit(ray, tMin, tMax, rec);
-    }
+                double tMax) const override;
 };

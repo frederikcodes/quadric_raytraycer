@@ -1,22 +1,13 @@
 #pragma once
 
-#include "acceleration/AABB.h"
-#include "core/Material.h"
-#include "core/Ray.h"
-#include "core/Vec3.h"
-
-struct HitRecord
-{
-    Vec3 point;
-    Vec3 normal;
-    Material material;
-    double t;
-};
+class AABB;
+struct HitRecord;
+struct Ray;
 
 class Hittable
 {
 public:
-    virtual ~Hittable() = default;
+    virtual ~Hittable();
 
     virtual bool hit(const Ray &ray,
                      double tMin,

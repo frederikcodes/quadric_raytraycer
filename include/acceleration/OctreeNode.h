@@ -4,7 +4,8 @@
 #include <vector>
 
 #include "acceleration/AABB.h"
-#include "hittable/Hittable.h"
+
+class Hittable;
 
 struct OctreeObject
 {
@@ -20,16 +21,5 @@ struct OctreeNode
 
     std::unique_ptr<OctreeNode> children[8];
 
-    bool isLeaf() const
-    {
-        for (int i = 0; i < 8; i++)
-        {
-            if (children[i])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    bool isLeaf() const;
 };

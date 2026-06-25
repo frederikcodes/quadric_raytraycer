@@ -1,0 +1,33 @@
+=== Multi-Scene Benchmark with oneTBB ===
+Resolution: 1280x720
+Samples per pixel: 4
+Max recursion depth: 4
+
+=== Scene: main_scene ===
+HittableList TBB render time: 0.785134 seconds
+Octree build time: 1.2892e-05 seconds
+Octree TBB render time: 0.751189 seconds
+Total octree time: 0.751202 seconds
+Render speedup list/octree: 1.04519x
+
+=== Scene: many_spheres ===
+HittableList TBB render time: 8.78351 seconds
+Octree build time: 0.000129134 seconds
+Octree TBB render time: 1.82644 seconds
+Total octree time: 1.82657 seconds
+Render speedup list/octree: 4.80909x
+
+=== Scene: many_small_objects ===
+HittableList TBB render time: 4.23304 seconds
+Octree build time: 9.62e-05 seconds
+Octree TBB render time: 1.60145 seconds
+Total octree time: 1.60155 seconds
+Render speedup list/octree: 2.64325x
+
+=== Scene: reflective_stress ===
+HittableList TBB render time: 7.86635 seconds
+Octree build time: 0.000118517 seconds
+Octree TBB render time: 1.72361 seconds
+Total octree time: 1.72373 seconds
+Render speedup list/octree: 4.56389x
+
