@@ -34,3 +34,7 @@ compile_commands.json
 
 # macOS
 .DS_Store
+
+# Local SSH keys
+yes
+yes.pub
